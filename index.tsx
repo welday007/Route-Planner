@@ -86,11 +86,13 @@ document.addEventListener('DOMContentLoaded', async (event) => {
   // The Google Maps API key is now managed within the map_app component.
   rootElement.appendChild(mapApp);
 
-  const geminiApiKey = process.env.API_KEY;
+  // Read the Gemini API key from the environment. The vite config exposes
+  // `GEMINI_API_KEY` to the client, so we reference that variable directly.
+  const geminiApiKey = process.env.GEMINI_API_KEY;
 
   if (!geminiApiKey) {
     const errorMessage = await marked.parse(
-      '**Configuration Error:** The Gemini API Key is missing. Please add `API_KEY=YOUR_KEY_HERE` to your `.env` file to enable the chat. You may need to restart the server after creating the file.',
+      '**Configuration Error:** The Gemini API Key is missing. Please add `GEMINI_API_KEY=YOUR_KEY_HERE` to your `.env` file to enable the chat. You may need to restart the server after creating the file.',
     );
     mapApp.addMessage('error', errorMessage);
     mapApp.setChatState(ChatState.IDLE); // Ensure UI is not locked
