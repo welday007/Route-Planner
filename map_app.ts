@@ -29,6 +29,33 @@ import {Marked} from 'marked';
 import {markedHighlight} from 'marked-highlight';
 
 import {MapParams} from './mcp_maps_server.js';
+import {
+  ICON_BUSY,
+  ICON_CHEVRON_LEFT,
+  ICON_CHEVRON_RIGHT,
+  ICON_CHEVRON_UP,
+  ICON_CHEVRON_DOWN,
+  ICON_PLAY,
+  ICON_STOP,
+} from './icons.js';
+import {
+  ChatState,
+  ChatRole,
+  ItineraryStop,
+  ItineraryLeg,
+  ItineraryData,
+  TooltipInfo,
+  MapView,
+} from './types.js';
+import {
+  USER_PROVIDED_GOOGLE_MAPS_API_KEY,
+  DEFAULT_ITINERARY_JSON,
+  EXAMPLE_PROMPTS,
+  DEFAULT_GAS_PRICE_PER_GALLON,
+  METERS_TO_MILES,
+} from './constants.js';
+
+export {ChatState, ChatRole};
 
 /** Markdown formatting function with syntax hilighting */
 export const marked = new Marked(
@@ -42,255 +69,6 @@ export const marked = new Marked(
     },
   }),
 );
-
-const ICON_BUSY = html`<svg
-  class="rotating"
-  xmlns="http://www.w3.org/2000/svg"
-  height="24px"
-  viewBox="0 -960 960 960"
-  width="24px"
-  fill="currentColor">
-  <path
-    d="M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-155.5t86-127Q252-817 325-848.5T480-880q17 0 28.5 11.5T520-840q0 17-11.5 28.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160q133 0 226.5-93.5T800-480q0-17 11.5-28.5T840-520q17 0 28.5 11.5T880-480q0 82-31.5 155t-86 127.5q-54.5 54.5-127 86T480-80Z" />
-</svg>`;
-
-const ICON_CHEVRON_LEFT = html`<svg
-  xmlns="http://www.w3.org/2000/svg"
-  height="24px"
-  viewBox="0 -960 960 960"
-  width="24px"
-  fill="currentColor">
-  <path
-    d="M561-240 321-480l240-240 57 57-183 183 183 183-57 57Zm-240 0L81-480l240-240 57 57-183 183 183 183-57 57Z" />
-</svg>`;
-const ICON_CHEVRON_RIGHT = html`<svg
-  xmlns="http://www.w3.org/2000/svg"
-  height="24px"
-  viewBox="0 -960 960 960"
-  width="24px"
-  fill="currentColor">
-  <path
-    d="m321-80-57-57 183-183-183-183 57-57 240 240-240 240Zm240 0-57-57 183-183-183-183 57-57 240 240-240 240Z" />
-</svg>`;
-const ICON_CHEVRON_UP = html`<svg
-  xmlns="http://www.w3.org/2000/svg"
-  height="24px"
-  viewBox="0 -960 960 960"
-  width="24px"
-  fill="currentColor">
-  <path d="M480-584 240-344l-56-56 296-296 296 296-56 56-240-240Z" />
-</svg>`;
-const ICON_CHEVRON_DOWN = html`<svg
-  xmlns="http://www.w3.org/2000/svg"
-  height="24px"
-  viewBox="0 -960 960 960"
-  width="24px"
-  fill="currentColor">
-  <path d="M480-344 240-584l56-56 184 184 184-184 56 56-240 240Z" />
-</svg>`;
-
-const ICON_PLAY = html`<svg
-  xmlns="http://www.w3.org/2000/svg"
-  height="24px"
-  viewBox="0 -960 960 960"
-  width="24px"
-  fill="currentColor">
-  <path d="M320-200v-560l440 280-440 280Z" />
-</svg>`;
-const ICON_STOP = html`<svg
-  xmlns="http://www.w3.org/2000/svg"
-  height="24px"
-  viewBox="0 -960 960 960"
-  width="24px"
-  fill="currentColor">
-  <path d="M280-280h400v-400H280v400Z" />
-</svg>`;
-
-/**
- * Chat state enum to manage the current state of the chat interface.
- */
-export enum ChatState {
-  IDLE,
-  GENERATING,
-  THINKING,
-  EXECUTING,
-}
-
-/**
- * Chat role enum to manage the current role of the message.
- */
-export enum ChatRole {
-  USER,
-  ASSISTANT,
-  SYSTEM,
-}
-
-// Google Maps API Key: A hardcoded key for demonstration purposes.
-// For production use, you should manage API keys more securely.
-const USER_PROVIDED_GOOGLE_MAPS_API_KEY: string =
-  'AIzaSyAJPTwj4S8isr4b-3NtqVSxk450IAS1lOQ';
-
-const DEFAULT_ITINERARY_JSON = {
-  stops: [
-    'Los Angeles, CA',
-    'Phoenix, AZ',
-    'El Paso, TX',
-    'Dallas, TX',
-    'New Orleans, LA',
-    'Atlanta, GA',
-    'Richmond, VA',
-    'New York, NY',
-    'Buffalo, NY',
-    'Chicago, IL',
-    'Minneapolis, MN',
-    'Billings, MT',
-    'Boise, ID',
-    'Reno, NV',
-    'Los Angeles, CA',
-  ],
-  dates: [
-    '2025-08-28',
-    '2025-08-29',
-    '2025-08-30',
-    '2025-08-31',
-    '2025-09-01',
-    '2025-09-02',
-    '2025-09-03',
-    '2025-09-04',
-    '2025-09-05',
-    '2025-09-06',
-    '2025-09-07',
-    '2025-09-08',
-    '2025-09-09',
-    '2025-09-10',
-    '2025-09-11',
-  ],
-  accommodations: [
-    {
-      price_per_night: 150,
-      hotel_name: 'Hilton Garden Inn Los Angeles/Hollywood',
-      address: '2005 N Highland Ave, Los Angeles, CA 90068',
-    },
-    {
-      price_per_night: 120,
-      hotel_name: 'Hyatt Place Phoenix - Downtown',
-      address: '150 W Adams St, Phoenix, AZ 85003',
-    },
-    {
-      price_per_night: 180,
-      hotel_name: 'Hotel Indigo El Paso Downtown',
-      address: '325 N Kansas St, El Paso, TX 79901',
-    },
-    {
-      price_per_night: 160,
-      hotel_name: 'Courtyard by Marriott Dallas Downtown/Reunion District',
-      address: '310 S Houston St, Dallas, TX 75202',
-    },
-    {
-      price_per_night: 170,
-      hotel_name: 'The Old No. 77 Hotel & Chandlery',
-      address: '535 Tchoupitoulas St, New Orleans, LA 70130',
-    },
-    {
-      price_per_night: 140,
-      hotel_name: 'Hyatt Centric Midtown Atlanta',
-      address: '125 10th St NE, Atlanta, GA 30309',
-    },
-    {
-      price_per_night: 155,
-      hotel_name: 'Graduate Richmond',
-      address: '301 W Franklin St, Richmond, VA 23220',
-    },
-    {
-      price_per_night: 180,
-      hotel_name: 'Moxy NYC Times Square',
-      address: '485 7th Ave, New York, NY 10018',
-    },
-    {
-      price_per_night: 160,
-      hotel_name: 'Aloft Buffalo Downtown',
-      address: '500 Pearl St, Buffalo, NY 14202',
-    },
-    {
-      price_per_night: 140,
-      hotel_name: 'Freehand Chicago',
-      address: '19 E Ohio St, Chicago, IL 60611',
-    },
-    {
-      price_per_night: 150,
-      hotel_name: 'Radisson RED Minneapolis Downtown',
-      address: '609 S 3rd St, Minneapolis, MN 55415',
-    },
-    {
-      price_per_night: 120,
-      hotel_name: 'Northern Hotel',
-      address: '19 N Broadway, Billings, MT 59101',
-    },
-    {
-      price_per_night: 165,
-      hotel_name: 'The Grove Hotel',
-      address: '245 S Capitol Blvd, Boise, ID 83702',
-    },
-    {
-      price_per_night: 165,
-      hotel_name: 'Renaissance Reno Downtown Hotel & Spa',
-      address: 'One S Lake St, Reno, NV 89501',
-    },
-  ],
-};
-
-const EXAMPLE_PROMPTS: string[] = [];
-
-const DEFAULT_GAS_PRICE_PER_GALLON = 3.5;
-const METERS_TO_MILES = 0.000621371;
-
-interface ItineraryStop {
-  name: string;
-  hotelName?: string;
-  address: string;
-  accommodationCost?: number;
-  location: any; // Google Maps LatLng object
-  marker: any; // Reference to Marker3DElement
-  color: string;
-  date?: string;
-}
-interface ItineraryLeg {
-  distanceText: string;
-  distanceValue: number; // in meters
-  durationText: string;
-  fuelCost: number;
-  polyline?: any; // Reference to Polyline3DElement
-  rawLegData: any; // The raw leg data from directions service
-  bounds: any; // Google Maps LatLngBounds object
-  color: string;
-}
-interface ItineraryData {
-  stops: ItineraryStop[];
-  legs: ItineraryLeg[];
-  totalDistance: number;
-  totalTime: string;
-  totalFuelCost: number;
-  totalAccommodationCost: number;
-  totalTripDays?: number;
-  travelMode: 'DRIVING' | 'WALKING' | 'BICYCLING' | 'TRANSIT';
-  bounds: any; // Overall route bounds
-}
-interface TooltipInfo {
-  content: string;
-  top: number;
-  left: number;
-}
-interface MapView {
-  id: number;
-  name: string;
-  center: {lat: number; lng: number; altitude: number};
-  heading: number;
-  tilt: number;
-  range: number;
-  // New properties for itinerary-based views
-  type: 'stop' | 'leg' | 'custom';
-  itineraryIndex: number; // Used for sorting mixed tours
-}
 /**
  * MapApp component for Photorealistic 3D Maps.
  */
